@@ -46,14 +46,15 @@ uint64_t timestamp_now() {
 /* I want [2016-10-13 00:01:23.528514] */
 void format_timestamp(std::ostream& os, uint64_t timestamp) {
     // The next 3 lines do not work on MSVC!
-    // auto duration = std::chrono::microseconds(timestamp);
-    // std::chrono::high_resolution_clock::time_point time_point(duration);
-    // std::time_t time_t =
-    // std::chrono::high_resolution_clock::to_time_t(time_point);
-    std::time_t time_t = timestamp / 1000000;
-    auto gmtime = std::gmtime(&time_t);
+    std::chrono::microseconds duration{timestamp};
+    std::chrono::high_resolution_clock::time_point timepoint{duration};
+
+    auto time = std::chrono::high_resolution_clock::to_time_t(timepoint);
+    auto gmtime = std::gmtime(&time);
+
     char buffer[32];
     strftime(buffer, 32, "%Y-%m-%d %T.", gmtime);
+
     char microseconds[7];
     sprintf(microseconds, "%06llu", timestamp % 1000000);
     os << '[' << buffer << microseconds << ']';
@@ -93,10 +94,14 @@ typedef std::tuple<char,
 
 char const* to_string(LogLevel loglevel) {
     switch (loglevel) {
+        case LogLevel::DEBUG:
+            return "DEBUG";
         case LogLevel::INFO:
             return "INFO";
         case LogLevel::WARN:
             return "WARN";
+        case LogLevel::ERROR:
+            return "ERROR";
         case LogLevel::CRIT:
             return "CRIT";
     }
@@ -704,7 +709,7 @@ void initialize(GuaranteedLogger gl,
     atomic_nanologger.store(nanologger.get(), std::memory_order_seq_cst);
 }
 
-std::atomic<unsigned int> loglevel = {0};
+std::atomic<unsigned int> loglevel{1};
 
 void set_log_level(LogLevel level) {
     loglevel.store(static_cast<unsigned int>(level), std::memory_order_release);
