@@ -37,7 +37,7 @@ SOFTWARE.
 namespace {
 
 /* Returns microseconds since epoch */
-uint64_t timestamp_now() {
+inline uint64_t timestamp_now() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
                std::chrono::high_resolution_clock::now().time_since_epoch())
         .count();
@@ -82,17 +82,17 @@ struct TupleIndex<T, std::tuple<U, Types...> > {
 }  // anonymous namespace
 
 namespace nanolog {
-typedef std::tuple<char,
-                   uint32_t,
-                   uint64_t,
-                   int32_t,
-                   int64_t,
-                   double,
-                   NanoLogLine::string_literal_t,
-                   char*>
-    SupportedTypes;
 
-char const* to_string(LogLevel loglevel) {
+using SupportedTypes = std::tuple<char,
+                                  uint32_t,
+                                  uint64_t,
+                                  int32_t,
+                                  int64_t,
+                                  double,
+                                  NanoLogLine::string_literal_t,
+                                  char*>;
+
+inline char const* to_string(LogLevel loglevel) {
     switch (loglevel) {
         case LogLevel::DEBUG:
             return "DEBUG";
