@@ -47,16 +47,16 @@ inline uint64_t timestamp_now() {
 void format_timestamp(std::ostream& os, uint64_t timestamp) {
     // The next 3 lines do not work on MSVC!
     std::chrono::microseconds duration{timestamp};
-    std::chrono::high_resolution_clock::time_point timepoint{duration};
+    std::chrono::system_clock::time_point timepoint{duration};
 
-    auto time = std::chrono::high_resolution_clock::to_time_t(timepoint);
+    auto time = std::chrono::system_clock::to_time_t(timepoint);
     auto gmtime = std::gmtime(&time);
 
     char buffer[32];
     strftime(buffer, 32, "%Y-%m-%d %T.", gmtime);
 
     char microseconds[7];
-    sprintf(microseconds, "%06llu", timestamp % 1000000);
+    sprintf(microseconds, "%06lu", timestamp % 1000000);
     os << '[' << buffer << microseconds << ']';
 }
 
@@ -104,8 +104,9 @@ inline char const* to_string(LogLevel loglevel) {
             return "ERROR";
         case LogLevel::CRIT:
             return "CRIT";
+        default:
+            return "XXXX";
     }
-    return "XXXX";
 }
 
 template <typename Arg>
@@ -166,14 +167,14 @@ void NanoLogLine::stringify(std::ostream& os) {
 }
 
 template <typename Arg>
-char* decode(std::ostream& os, char* b, Arg* dummy) {
+char* decode(std::ostream& os, char* b, Arg*) {
     Arg arg = *reinterpret_cast<Arg*>(b);
     os << arg;
     return b + sizeof(Arg);
 }
 
 template <>
-char* decode(std::ostream& os, char* b, NanoLogLine::string_literal_t* dummy) {
+char* decode(std::ostream& os, char* b, NanoLogLine::string_literal_t*) {
     NanoLogLine::string_literal_t s =
         *reinterpret_cast<NanoLogLine::string_literal_t*>(b);
     os << s.m_s;
@@ -181,7 +182,7 @@ char* decode(std::ostream& os, char* b, NanoLogLine::string_literal_t* dummy) {
 }
 
 template <>
-char* decode(std::ostream& os, char* b, char** dummy) {
+char* decode(std::ostream& os, char* b, char**) {
     while (*b != '\0') {
         os << *b;
         ++b;
@@ -535,7 +536,7 @@ class QueueBuffer : public BufferBase {
         if (read_buffer == nullptr)
             return false;
 
-        if (bool success = read_buffer->try_pop(logline, m_read_index)) {
+        if (read_buffer->try_pop(logline, m_read_index)) {
             m_read_index++;
             if (m_read_index == Buffer::size) {
                 m_read_index = 0;
@@ -619,7 +620,7 @@ class FileWriter {
 
 class NanoLogger {
    public:
-    NanoLogger(NonGuaranteedLogger ngl,
+    NanoLogger(NonGuaranteedLogger,
                std::string const& log_directory,
                std::string const& log_file_name,
                uint32_t log_file_roll_size_mb)
